@@ -6,7 +6,7 @@ pygame.init()
 pygame.font.init()
 
 
-class Ball:
+class Game:
     '''
     Класс, создающий мячик и обрабатывающий клики мышки
     '''
@@ -94,6 +94,18 @@ class Ball:
         if self.coord_list[j][1] - self.coord_list[j][2] <= 0:
             self.speed[j][1] += np.abs(2 * self.speed[j][1])
 
+    def square_reflection(self, j):
+        self.square_list[j][0] += self.square_speed[j][0] * np.abs(np.sin(self.square_list[j][0]))
+        self.square_list[j][1] += self.square_speed[j][1] * np.abs(np.sin(self.square_list[j][1]))
+        if self.square_list[j][0] + self.square_list[j][3] >= self.screen_width:
+            self.square_speed[j][0] -= np.abs(2 * self.square_speed[j][0])
+        if self.square_list[j][1] + self.square_list[j][3] >= self.screen_height:
+            self.square_speed[j][1] -= np.abs(2 * self.square_speed[j][1])
+        if self.square_list[j][0] - self.square_list[j][3] <= 0:
+            self.square_speed[j][0] += np.abs(2 * self.square_speed[j][0])
+        if self.square_list[j][1] - self.square_list[j][3] <= 0:
+            self.square_speed[j][1] += np.abs(2 * self.square_speed[j][1])
+
     def new_square(self, ball_amount):
         '''
         Создает новые квадраты
@@ -136,7 +148,11 @@ class Ball:
                         print('Количество кликов: ', self.click_amount)
                         print('Количество попаданий в мячики: ', self.get_amount)
                         print('Количество попаданий в квадраты: ', self.square_amount)
-                        print('Счет: ', self.score**3 / (self.attempt_amount * self.click_amount))
+                        print('Количество очков: ', self.score)
+                        if self.click_amount == 0:
+                            print('Счет: 0.0')
+                        else:
+                            print('Cчет: ', self.score**3 / (self.attempt_amount * self.click_amount))
                     elif event.type == pygame.MOUSEBUTTONDOWN:
                         self.click_amount += 1
                         for j in range(len(self.coord_list)):
@@ -159,10 +175,10 @@ class Ball:
                     circle(self.screen, self.coord_list[j][3], (self.coord_list[j][0], self.coord_list[j][1]),
                            self.coord_list[j][2])
                 for j in range(len(self.square_list)):
-                    self.square_list[j][0] += self.square_speed[j][0]*np.abs(np.sin(self.square_list[j][0]))
-                    self.square_list[j][1] += self.square_speed[j][1]*np.abs(np.sin(self.square_list[j][1]))
+                    self.square_reflection(j)
                     rect(self.screen, self.square_list[j][2],
-                         (self.square_list[j][0] - self.square_list[j][3] // 2, self.square_list[j][1] - self.square_list[j][3] // 2,
+                         (self.square_list[j][0] - self.square_list[j][3] // 2,
+                          self.square_list[j][1] - self.square_list[j][3] // 2,
                           self.square_list[j][3], self.square_list[j][3]))
                 pygame.display.update()
                 self.screen.fill(self.screen_color)
@@ -177,8 +193,8 @@ def main():
     MAGENTA = (255, 0, 255)
     CYAN = (0, 255, 255)
     BLACK = (0, 0, 0)
-    ball = Ball(BLACK, RED, BLUE, YELLOW, GREEN, MAGENTA, CYAN, 60, 1200, 800, 10, 100, 20, 5, 1, 20, 50)
-    ball.click()
+    game = Game(BLACK, RED, BLUE, YELLOW, GREEN, MAGENTA, CYAN, 60, 1200, 800, 10, 100, 20, 5, 1, 20, 50)
+    game.click()
 
 
 if __name__ == '__main__':
