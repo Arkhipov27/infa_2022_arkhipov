@@ -1,5 +1,5 @@
 import math
-from numpy import random
+import numpy as np
 import pygame
 from pygame.draw import *
 
@@ -23,7 +23,7 @@ HEIGHT = 600
 
 class Ball:
     def __init__(self, screen: pygame.Surface, x=40, y=450):
-        """ Конструктор класса ball
+        """ Конструктор класса Ball
 
         Args:
         x - начальное положение мяча по горизонтали
@@ -35,7 +35,7 @@ class Ball:
         self.r = 10
         self.vx = 0
         self.vy = 0
-        self.color = GAME_COLORS[random.randint(1, len(GAME_COLORS))]
+        self.color = GAME_COLORS[np.random.randint(1, len(GAME_COLORS))]
         self.live = 30
         self.t = 0
 
@@ -46,13 +46,13 @@ class Ball:
         self.x и self.y с учетом скоростей self.vx и self.vy, силы гравитации, действующей на мяч,
         и стен по краям окна (размер окна 800х600).
         """
-        # FIXME
         self.t += 1
         self.x += self.vx
         self.y += self.vy + 9.8 * self.t
         circle(self.screen, self.color, (self.x, self.y), self.r)
 
     def draw(self):
+        '''Рисует снаряд'''
         circle(self.screen, self.color, (self.x, self.y), self.r)
 
     def hit_test(self, obj):
@@ -63,7 +63,6 @@ class Ball:
         Returns:
             Возвращает True в случае столкновения мяча и цели. В противном случае возвращает False.
         """
-        # FIXME
         if (self.x - obj.x) ** 2 + (self.y - obj.y) ** 2 <= (self.r + obj.r) ** 2:
             return True
         else:
@@ -72,6 +71,12 @@ class Ball:
 
 class Gun:
     def __init__(self, screen):
+        '''
+        Конструктор класса Gun
+
+        Args:
+            screen: экран
+        '''
         self.screen = screen
         self.f_power = 50
         self.f_on = 0
@@ -79,6 +84,12 @@ class Gun:
         self.color = GREY
 
     def fire_start(self, event):
+        '''
+        Подготовка к выстрелу (происходит при нажатии кнопки мыши)
+
+        Args:
+            event: событие, связанное с мышью
+        '''
         self.f_on = 1
         self.power_up()
 
@@ -101,7 +112,7 @@ class Gun:
 
     def targetting(self, event):
         """Прицеливание. Зависит от положения мыши."""
-        if event:
+        if event and event.pos[0] != 20:
             self.an = math.atan((event.pos[1]-450) / (event.pos[0]-20))
         if self.f_on:
             self.color = RED
@@ -109,10 +120,13 @@ class Gun:
             self.color = GREY
 
     def draw(self):
-        # FIXME don't know how to do it
-        circle(screen, self.color, (40, 450), 50)
+        '''Рисует пушку'''
+        rect(screen, self.color, (5, 465, 40, 20))
+        rect(screen, self.color, (25, 460, 10, 5))
+        rect(screen, self.color, (20, 450, 30, 10))
 
     def power_up(self):
+        '''Увеличение силы пушки'''
         if self.f_on:
             if self.f_power < 100:
                 self.f_power += 1
@@ -122,20 +136,29 @@ class Gun:
 
 
 class Target:
-    # FIXME: don't work!!! How to call this functions when object is created?
-    def __init__(self):
+    def __init__(self, max_speed=10):
+        '''
+        Конструктор класса Target
+
+        Args:
+            max_speed: максимальная скорость мишени
+        '''
         self.points = 0
-        self.x = random.randint(600, 780)
-        self.y = random.randint(300, 550)
-        self.r = random.randint(2, 50)
-        self.new_target()
+        self.x = np.random.randint(600, 780)
+        self.y = np.random.randint(300, 550)
+        self.r = np.random.randint(2, 50)
+        self.max_speed = max_speed
+        self.speed_x = np.random.randint(-self.max_speed, self.max_speed)
+        self.speed_y = np.random.randint(-self.max_speed, self.max_speed)
 
     def new_target(self):
         """ Инициализация новой цели. """
-        self.x = random.randint(600, 780)
-        self.y = random.randint(300, 550)
-        self.r = random.randint(2, 50)
+        self.x = np.random.randint(600, 780)
+        self.y = np.random.randint(300, 550)
+        self.r = np.random.randint(2, 50)
         circle(screen, RED, (self.x, self.y), self.r)
+        self.speed_x = np.random.randint(-self.max_speed, self.max_speed)
+        self.speed_y = np.random.randint(-self.max_speed, self.max_speed)
 
     def hit(self, points=1):
         """Попадание шарика в цель."""
@@ -143,7 +166,30 @@ class Target:
         circle(screen, WHITE, (self.x, self.y), self.r)
 
     def draw(self):
+        '''Рисует мишень'''
         circle(screen, RED, (self.x, self.y), self.r)
+
+    def motion(self):
+        '''Описывает движение мишени'''
+        self.x += self.speed_x
+        self.y += self.speed_y
+        if self.x >= 780:
+            self.speed_x -= np.abs(2 * self.speed_x)
+        if self.y >= 550:
+            self.speed_y -= np.abs(2 * self.speed_y)
+        if self.x <= 600:
+            self.speed_x += np.abs(2 * self.speed_x)
+        if self.y <= 300:
+            self.speed_y += np.abs(2 * self.speed_y)
+
+    def get_points(self):
+        '''
+        Доступ к переменной points
+
+        Returns:
+            self.points: количество попаданий
+        '''
+        return self.points
 
 
 pygame.init()
@@ -153,13 +199,15 @@ balls = []
 
 clock = pygame.time.Clock()
 gun = Gun(screen)
-target = Target()
+target1 = Target()
+target2 = Target()
 finished = False
 
 while not finished:
     screen.fill(WHITE)
     gun.draw()
-    target.draw()
+    target1.draw()
+    target2.draw()
     for b in balls:
         b.draw()
     pygame.display.update()
@@ -168,7 +216,8 @@ while not finished:
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
             finished = True
-            print(target.points)
+            print('Количество снарядов', len(balls))
+            print('Количество попаданий', target1.get_points() + target2.get_points())
         elif event.type == pygame.MOUSEBUTTONDOWN:
             gun.fire_start(event)
         elif event.type == pygame.MOUSEBUTTONUP:
@@ -176,11 +225,16 @@ while not finished:
         elif event.type == pygame.MOUSEMOTION:
             gun.targetting(event)
 
+    target1.motion()
+    target2.motion()
     for b in balls:
         b.move()
-        if b.hit_test(target):
-            target.hit()
-            target.new_target()
+        if b.hit_test(target1):
+            target1.hit()
+            target1.new_target()
+        if b.hit_test(target2):
+            target2.hit()
+            target2.new_target()
     gun.power_up()
 
 pygame.quit()
