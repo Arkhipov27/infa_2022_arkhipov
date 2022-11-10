@@ -3,7 +3,6 @@ import numpy as np
 import pygame
 from pygame.draw import *
 
-
 FPS = 30
 
 RED = 0xFF0000
@@ -144,20 +143,22 @@ class Square:
 
 
 class Gun:
-    def __init__(self, screen):
+    def __init__(self, screen, x, speed):
         '''
         Конструктор класса Gun
 
         Args:
             screen: экран
+            x: начальное положение пушки
         '''
         self.screen = screen
         self.f_power = 50
         self.f_on = 0
         self.an = 1
         self.color = GREY
-        self.x = 5
-        self.speed = 3
+        self.x = x
+        self.coord = x
+        self.speed = speed
 
     def fire_start(self, event):
         '''
@@ -176,9 +177,9 @@ class Gun:
         Начальные значения компонент скорости мяча vx и vy зависят от положения мыши.
         """
         global balls
-        new_ball = Ball(self.screen)
+        new_ball = Ball(self.screen, x=self.coord+35)
         new_ball.r += 5
-        self.an = math.atan2((event.pos[1]-new_ball.y), (event.pos[0]-new_ball.x))
+        self.an = math.atan2((event.pos[1] - new_ball.y), (event.pos[0] - new_ball.x))
         new_ball.vx = self.f_power * math.cos(self.an)
         new_ball.vy = self.f_power * math.sin(self.an)
         balls.append(new_ball)
@@ -192,7 +193,7 @@ class Gun:
         Начальные значения компонент скорости мяча vx и vy зависят от положения мыши.
         """
         global squares
-        new_square = Square(self.screen)
+        new_square = Square(self.screen, x=self.coord+35)
         new_square.length += 5
         self.an = math.atan2((event.pos[1] - new_square.y), (event.pos[0] - new_square.x))
         new_square.vx = self.f_power * math.cos(self.an)
@@ -204,7 +205,7 @@ class Gun:
     def targetting(self, event):
         """Прицеливание. Зависит от положения мыши."""
         if event and event.pos[0] != 20:
-            self.an = math.atan((event.pos[1]-450) / (event.pos[0]-20))
+            self.an = math.atan((event.pos[1] - 450) / (event.pos[0] - 20))
         if self.f_on:
             self.color = RED
         else:
@@ -228,9 +229,9 @@ class Gun:
     def motion(self):
         '''Описывает движение пушки'''
         self.x += self.speed
-        if self.x >= 55:
+        if self.x >= self.coord + 50:
             self.speed -= np.abs(2 * self.speed)
-        if self.x <= 5:
+        if self.x <= self.coord:
             self.speed += np.abs(2 * self.speed)
 
 
@@ -306,7 +307,6 @@ class Target2:
         self.max_speed = max_speed
         self.speed_x = np.random.randint(-self.max_speed, self.max_speed)
         self.speed_y = np.random.randint(-self.max_speed, self.max_speed)
-        self.t = 0
 
     def new_target(self):
         """ Инициализация новой цели. """
@@ -317,7 +317,6 @@ class Target2:
                            self.length, self.length))
         self.speed_x = np.random.randint(-self.max_speed, self.max_speed)
         self.speed_y = np.random.randint(-self.max_speed, self.max_speed)
-        self.t = 0
 
     def hit(self, points=1):
         """Попадание снаряда в цель."""
@@ -332,22 +331,22 @@ class Target2:
 
     def motion(self):
         '''Описывает движение мишени'''
-        self.t -= 1
-        self.x += self.speed_x + 0.01*self.t
-        self.y += self.speed_y + 0.01*self.t
-        if self.x + self.length / 2 >= 780:
-            self.speed_x -= np.abs(2 * self.speed_x)
-        if self.y + self.length / 2 >= 550:
-            self.speed_y -= np.abs(2 * self.speed_y)
-        if self.x - self.length / 2 <= 600:
-            self.speed_x += np.abs(2 * self.speed_x)
-        if self.y - self.length / 2 <= 300:
-            self.speed_y += np.abs(2 * self.speed_y)
+        self.x += self.speed_x
+        self.y += self.speed_y
 
-        if self.speed_x < 1:
-            self.speed_x = 1
-        if self.speed_y < 1:
-            self.speed_y = 1
+        if self.x + self.length / 2 >= 780:
+            self.speed_x -= 2 * np.abs(self.speed_x)
+        if self.y + self.length / 2 >= 550:
+            self.speed_y -= 4 * np.abs(self.speed_y)
+        if self.x - self.length / 2 <= 600:
+            self.speed_x += 2 * np.abs(self.speed_x)
+        if self.y - self.length / 2 <= 300:
+            self.speed_y += 4 * np.abs(self.speed_y)
+
+        if self.speed_x > 10:
+            self.speed_x = 10
+        if self.speed_y > 10:
+            self.speed_y = 10
 
     def get_points(self):
         '''
@@ -363,9 +362,11 @@ pygame.init()
 screen = pygame.display.set_mode((WIDTH, HEIGHT))
 balls = []
 squares = []
+a = 0
 
 clock = pygame.time.Clock()
-gun = Gun(screen)
+gun1 = Gun(screen, 5, 3)
+gun2 = Gun(screen, 150, 2)
 target1 = Target1()
 target2 = Target1()
 
@@ -375,7 +376,8 @@ finished = False
 
 while not finished:
     screen.fill(WHITE)
-    gun.draw()
+    gun1.draw()
+    gun2.draw()
     target1.draw()
     target2.draw()
     target_sq1.draw()
@@ -386,24 +388,42 @@ while not finished:
         s.draw()
     pygame.display.update()
     clock.tick(FPS)
-
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
             finished = True
             print('Количество снарядов', len(balls) + len(squares))
             print('Количество попаданий', target1.get_points() + target2.get_points() +
                   target_sq1.get_points() + target_sq2.get_points())
-        elif event.type == pygame.MOUSEBUTTONDOWN:
-            gun.fire_start(event)
-        elif event.type == pygame.MOUSEBUTTONUP:
-            if event.button == 1:
-                gun.fire1_end(event)
-            elif event.button == 3:
-                gun.fire3_end(event)
-        elif event.type == pygame.MOUSEMOTION:
-            gun.targetting(event)
+        elif event.type == pygame.KEYDOWN:
+            if event.key == pygame.K_LEFT:
+                a = 0
+            if event.key == pygame.K_RIGHT:
+                a = 1
 
-    gun.motion()
+        if a == 0:
+            if event.type == pygame.MOUSEBUTTONDOWN:
+                gun1.fire_start(event)
+            if event.type == pygame.MOUSEBUTTONUP:
+                if event.button == 1:
+                    gun1.fire1_end(event)
+                elif event.button == 3:
+                    gun1.fire3_end(event)
+            if event.type == pygame.MOUSEMOTION:
+                gun1.targetting(event)
+
+        if a == 1:
+            if event.type == pygame.MOUSEBUTTONDOWN:
+                gun2.fire_start(event)
+            if event.type == pygame.MOUSEBUTTONUP:
+                if event.button == 1:
+                    gun2.fire1_end(event)
+                elif event.button == 3:
+                    gun2.fire3_end(event)
+            if event.type == pygame.MOUSEMOTION:
+                gun2.targetting(event)
+
+    gun1.motion()
+    gun2.motion()
     target1.motion()
     target2.motion()
     target_sq1.motion()
@@ -436,6 +456,7 @@ while not finished:
         if s.hit_test2(target_sq2):
             target_sq2.hit()
             target_sq2.new_target()
-    gun.power_up()
+    gun1.power_up()
+    gun2.power_up()
 
 pygame.quit()
